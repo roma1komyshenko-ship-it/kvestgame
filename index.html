@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Квест життя</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Квест">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#ECEFEA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1412" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one mobile-first column — character card, sticky tabs, then the active view (Сьогодні / Квести / Персонаж / Тіло) */
+:root{
+  --bg:#ECEFEA; --surface:#FFFFFF; --surface-2:#F4F6F1; --ink:#17201C; --muted:#5D6A62; --line:#D7DCD3;
+  --accent:#E8541A; --accent-ink:#FFFFFF; --accent-soft:#FCE6DB; --ok:#2E8B57; --warn:#B7791F; --err:#C0392B;
+  --a-body:#D2384A; --a-energy:#0E93A0; --a-mind:#5A57D1; --a-biz:#B57414; --a-social:#BE3D86; --a-dis:#2E8B57;
+  --f-display:"Unbounded","Manrope",system-ui,sans-serif;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1412; --surface:#171D1A; --surface-2:#1E2622; --ink:#E7ECE8; --muted:#93A098; --line:#2A332E;
+  --accent:#FF7A3D; --accent-ink:#1A0E07; --accent-soft:#3A2116; --ok:#4CC083; --warn:#E0A43C; --err:#F06A5A;
+  --a-body:#F0606F; --a-energy:#2CC3CF; --a-mind:#8F8CFF; --a-biz:#E3A23C; --a-social:#EC6AB3; --a-dis:#4CC083;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1412; --surface:#171D1A; --surface-2:#1E2622; --ink:#E7ECE8; --muted:#93A098; --line:#2A332E;
+  --accent:#FF7A3D; --accent-ink:#1A0E07; --accent-soft:#3A2116; --ok:#4CC083; --warn:#E0A43C; --err:#F06A5A;
+  --a-body:#F0606F; --a-energy:#2CC3CF; --a-mind:#8F8CFF; --a-biz:#E3A23C; --a-social:#EC6AB3; --a-dis:#4CC083;
+  color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit;touch-action:manipulation}
+button{cursor:pointer;-webkit-user-select:none;user-select:none}
+input,select{font-size:16px!important} /* iOS не зумить поля з 16px */
+button:active{transform:scale(.97)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px calc(96px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:18px}
+h3{font-size:14px}
+.eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+
+/* Character card */
+.hero{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.ring{position:relative;width:76px;height:76px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .lv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .lv b{font-family:var(--f-display);font-size:24px;line-height:1}
+.ring .lv span{font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--muted)}
+.hero h1{font-size:20px;line-height:1.15;overflow-wrap:anywhere}
+.hero .who{min-width:0;display:flex;flex-direction:column;gap:4px}
+.xpline{font-size:12px;color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--ac,var(--accent));border-radius:99px;transition:width .35s ease}
+.todaybox{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.todaybox b{font-family:var(--f-display);font-size:22px}
+.todaybox span{font-size:11px;color:var(--muted)}
+@media (max-width:460px){.hero{grid-template-columns:auto 1fr}.todaybox{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:10px}}
+
+/* Tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  background:color-mix(in srgb,var(--surface) 88%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
+  border-top:1px solid var(--line);padding-top:6px;padding-bottom:max(8px,env(safe-area-inset-bottom,0px));
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.tabs button{border:0;background:transparent;padding:4px 2px;font-weight:700;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs button[aria-current="page"]{color:var(--accent)}
+.tabs button:active{transform:none;opacity:.6}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,var(--line))}
+.btn:disabled{opacity:.4;cursor:default}
+.icon-btn{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--surface);border-radius:10px;font-weight:800}
+.note{font-size:12px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;padding:8px 12px}
+
+/* Date nav + week */
+.datenav{display:flex;align-items:center;gap:8px}
+.datenav .d{flex:1;text-align:center;min-width:0}
+.datenav .d b{display:block;font-family:var(--f-display);font-size:16px;text-transform:capitalize}
+.datenav .d span{font-size:12px;color:var(--muted)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.wday{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.wday small{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.wday b{font-family:var(--f-mono);font-size:13px}
+.wday .pip{width:22px;height:4px;border-radius:9px;background:var(--line);overflow:hidden}
+.wday .pip i{display:block;height:100%;background:var(--accent)}
+.wday[aria-current="date"]{border-color:var(--ink);background:var(--surface)}
+.wday.perfect .pip i{background:var(--ok)}
+.wday:disabled{opacity:.35;cursor:default}
+
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface-2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat b{font-family:var(--f-display);font-size:18px}
+.stat span{font-size:11px;color:var(--muted)}
+.bonus{display:flex;gap:10px;align-items:center;font-size:13px;padding:10px 12px;border-radius:10px;background:var(--accent-soft)}
+.bonus.got{background:color-mix(in srgb,var(--ok) 16%,var(--surface))}
+.bonus b{font-family:var(--f-mono)}
+
+/* Quest cards */
+.qlist{display:flex;flex-direction:column;gap:8px}
+.quest{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.quest.is-done{background:var(--surface-2)}
+.quest.is-done .q-name{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 60%,transparent)}
+.check{width:44px;height:44px;border-radius:50%;border:2px solid var(--ac);background:transparent;display:flex;align-items:center;justify-content:center;padding:0}
+.check svg{width:22px;height:22px;stroke:var(--accent-ink);opacity:0}
+.is-done .check{background:var(--ac)}
+.is-done .check svg{opacity:1;stroke:var(--surface)}
+.qring{width:44px;height:44px;border:0;background:none;padding:0;position:relative}
+.qring svg{width:44px;height:44px;transform:rotate(-90deg)}
+.qring span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:var(--f-mono)}
+.q-main{min-width:0;display:flex;flex-direction:column;gap:6px}
+.q-top{display:flex;gap:8px;justify-content:space-between;align-items:baseline}
+.q-name{font-weight:700;overflow-wrap:anywhere}
+.q-xp{font-family:var(--f-mono);font-size:12px;color:var(--accent);white-space:nowrap}
+.q-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--ac) 13%,transparent);color:var(--ac)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ac)}
+.badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid var(--line)}
+.badge.late{color:var(--err);border-color:color-mix(in srgb,var(--err) 45%,var(--line))}
+.badge.fire{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.q-ctrl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.q-ctrl .btn{padding:6px 10px;font-family:var(--f-mono);font-size:12px}
+.q-val{border:1px dashed var(--line);background:transparent;border-radius:8px;padding:6px 10px;font-family:var(--f-mono);font-size:13px;font-weight:700;min-width:0}
+.q-ctrl input{width:110px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-family:var(--f-mono)}
+.group-h{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+
+/* Forms */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label,.field .lbl{font-size:12px;font-weight:700;color:var(--muted)}
+.field input,.field select,.inp{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.quick{display:grid;grid-template-columns:1fr auto auto;gap:8px}
+@media (max-width:520px){.quick{grid-template-columns:1fr auto}.quick input{grid-column:1/-1}}
+.daypick{display:flex;gap:4px;flex-wrap:wrap}
+.daypick label{display:inline-flex}
+.daypick input{position:absolute;opacity:0;pointer-events:none}
+.daypick span{display:inline-block;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+.daypick input:checked+span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.daypick input:focus-visible+span{outline:2px solid var(--accent)}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+
+/* Manage list */
+.mq{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.mq .t{min-width:0;display:flex;flex-direction:column;gap:4px}
+.mq .acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.mq .acts .btn{padding:6px 9px;font-size:12px}
+
+/* Character */
+.attrs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.attr{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.attr .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.attr .nm{font-weight:800;color:var(--ac)}
+.attr .lvl{font-family:var(--f-display);font-size:18px}
+.attr small{font-size:11px;color:var(--muted)}
+.heat-wrap{overflow-x:auto}
+.heat{display:grid;grid-template-columns:repeat(7,minmax(30px,1fr));gap:5px;min-width:250px}
+.heat .h{font-size:10px;font-weight:700;color:var(--muted);text-align:center;text-transform:uppercase}
+.cell{aspect-ratio:1;border-radius:7px;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:flex-end;justify-content:flex-end;padding:3px;font-size:9px;font-family:var(--f-mono);color:var(--muted);max-width:100%}
+.cell.empty{visibility:hidden}
+.cell.today{border-color:var(--ink)}
+.legend{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.ranks{display:flex;flex-direction:column;gap:6px}
+.ranks .r{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.ranks .r b{font-family:var(--f-mono)}
+
+/* Body */
+.chart-wrap{overflow-x:auto}
+.chart{width:100%;min-width:300px;height:auto;display:block}
+.blog{display:flex;flex-direction:column;gap:2px}
+.blog .r{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+
+/* Onboarding */
+.ob{display:flex;flex-direction:column;gap:16px;padding-block:24px}
+.ob h1{font-size:clamp(26px,6vw,38px);line-height:1.1}
+.ob p{max-width:60ch;margin:0;color:var(--muted)}
+.ob .preview{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.ob .preview div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);font-size:13px;display:flex;justify-content:space-between;gap:8px}
+
+/* Toasts */
+.toasts{position:fixed;left:0;right:0;bottom:0;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:20}
+.toast{background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-weight:700;font-size:13px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);animation:pop .25s ease-out;max-width:100%}
+.toast.lvl{background:var(--accent);color:var(--accent-ink);font-family:var(--f-display);font-size:15px}
+.toast.err{background:var(--err);color:#fff}
+@keyframes pop{from{transform:translateY(10px);opacity:.3}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}.bar i{transition:none}}
+.loading{padding:48px 0;text-align:center;color:var(--muted)}
+.backup-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="loading">Завантаження персонажа…</div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- helpers ---------- */
+const $app = document.getElementById('app');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseYmd = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); };
+const todayStr = () => ymd(new Date());
+const wd = s => ((parseYmd(s).getDay()+6)%7)+1; // 1=Пн … 7=Нд
+const mondayOf = s => addDays(s, -(wd(s)-1));
+const newId = () => 'q' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const clone = o => JSON.parse(JSON.stringify(o));
+const fmt = n => Math.round(n).toLocaleString('uk-UA');
+const WD = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+const isStandalone = () => window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+const TAB_ICONS = {
+  today:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/></svg>',
+  quests:'<svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>',
+  hero:'<svg viewBox="0 0 24 24"><path d="M12 2.8l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.1 6.8 18.9l1-5.8L3.5 9l5.9-.8z"/></svg>',
+  body:'<svg viewBox="0 0 24 24"><path d="M3 12h3l2.5-6 4 12 3-8 1.5 2H21"/></svg>'
+};
+
+const ATTRS = [
+  {k:'body',   n:'Тіло',       d:'Тренування, сила, форма'},
+  {k:'energy', n:'Енергія',    d:'Вода, кроки, сон'},
+  {k:'mind',   n:'Розум',      d:'Навчання, мови, книги'},
+  {k:'biz',    n:'Справа',     d:'Робота, об’єкти, гроші'},
+  {k:'social', n:'Зв’язки',    d:'Клієнти, дзвінки, люди'},
+  {k:'dis',    n:'Дисципліна', d:'Режим, звички, ідеальні дні'}
+];
+const ATTR = Object.fromEntries(ATTRS.map(a => [a.k,a]));
+const TITLES = [[1,'Новачок'],[3,'Учень'],[5,'Мандрівник'],[8,'Майстер справ'],[12,'Ветеран'],[16,'Чемпіон'],[20,'Легенда'],[30,'Міфічний герой']];
+const titleFor = L => TITLES.filter(t => L >= t[0]).pop()[1];
+const BONUS = 50, BODY_XP = 10;
+
+function levelFrom(xp, base, inc){
+  let L = 1, need = base, rest = xp;
+  while (rest >= need){ rest -= need; L++; need = base + inc*(L-1); }
+  return {L, into: rest, need};
+}
+const heroLevel = xp => levelFrom(xp, 150, 50);
+const attrLevel = xp => levelFrom(xp, 80, 30);
+
+function starterQuests(T){
+  const q = (name, attr, type, xp, freq, extra) => Object.assign({id:newId(), name, attr, type, xp, freq, days:[1,2,3,4,5,6,7], target:1, step:1, unit:'', created:T}, extra||{});
+  return [
+    q('Випити воду','energy','count',20,'daily',{target:3000, step:250, unit:'мл'}),
+    q('Пройти кроки','energy','count',30,'daily',{target:10000, step:1000, unit:'кроків'}),
+    q('Тренування','body','check',40,'days',{days:[1,3,5]}),
+    q('Вивчити нові слова','mind','count',20,'daily',{target:10, step:1, unit:'слів'}),
+    q('Взяти новий об’єкт в роботу','biz','check',40,'days',{days:[1,2,3,4,5]}),
+    q('Сфотографувати об’єкт у роботі','biz','check',30,'days',{days:[1,2,3,4,5]}),
+    q('Зателефонувати клієнтам','social','count',30,'days',{days:[1,2,3,4,5], target:3, step:1, unit:'дзвінків'}),
+    q('Лягти спати до 23:00','dis','check',20,'daily'),
+    q('Приклад: передзвонити клієнту щодо показу','social','check',20,'once',{date:T})
+  ];
+}
+
+/* ---------- state ---------- */
+const S = {
+  loaded:false, state:null, days:{}, mode:null, netNote:null,
+  view:'today', date:todayStr(), editVal:null, confirmDel:null,
+  form:null, quick:{name:'', attr:'biz'}, body:{date:todayStr(), w:'', waist:''}, goalDraft:null, nameDraft:null, obName:''
+};
+
+/* ---------- persistence ---------- */
+const LS_KEY = 'kvest-zhyttia-v1';
+const store = {
+  db:null, profileRef:null, daysCol:null, timers:{}, chains:{}, pending:new Set(),
+  async init(){
+    // iPhone-версія: дані живуть на телефоні; просимо Safari не чистити сховище
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+    const db = null, id = null;
+    if (db && id){
+      this.mode = S.mode = 'db';
+      this.db = db;
+      this.profileRef = db.doc('data/users/' + id + '/profile');
+      this.daysCol = this.profileRef.collection('days');
+      this.subscribe();
+    } else {
+      this.mode = S.mode = 'local';
+      this.loadLocal();
+      S.loaded = true;
+      render();
+    }
+  },
+  subscribe(){
+    let gotProfile = false;
+    const timer = setTimeout(() => {
+      if (!gotProfile){ S.netNote = 'Сховище поки не відповідає. Перевірте з’єднання — дані з’являться, щойно воно відповість.'; render(); }
+    }, 10000);
+    this.profileRef.onSnapshot(snap => {
+      if (!snap.metadata.fromCache){ gotProfile = true; clearTimeout(timer); S.netNote = null; }
+      if (this.pending.has('state')) return;
+      let next = S.state;
+      if (snap.exists) next = clone(snap.data());
+      else if (!snap.metadata.fromCache) next = null;
+      else return;
+      const changed = JSON.stringify(next) !== JSON.stringify(S.state) || !S.loaded;
+      S.state = next; S.loaded = true;
+      if (changed) render();
+    }, err => {
+      clearTimeout(timer); S.loaded = true;
+      S.netNote = 'Сховище недоступне (' + (err && err.code || 'помилка') + '). Зміни можуть не зберегтися.';
+      render();
+    });
+    this.daysCol.orderBy('date','desc').limit(1000).onSnapshot(snap => {
+      let changed = false;
+      snap.docs.forEach(d => {
+        if (this.pending.has(d.id)) return;
+        const v = clone(d.data());
+        if (JSON.stringify(v) !== JSON.stringify(S.days[d.id])){ S.days[d.id] = v; changed = true; }
+      });
+      if (changed && S.loaded) render();
+    }, () => {});
+  },
+  loadLocal(){
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw){ const o = JSON.parse(raw); S.state = o.state || null; S.days = o.days || {}; }
+    } catch(e){}
+  },
+  saveLocal(){
+    try { localStorage.setItem(LS_KEY, JSON.stringify({state:S.state, days:S.days})); }
+    catch(e){ toast('Не вдалося зберегти в браузері', 'err'); }
+  },
+  save(key){
+    if (this.mode !== 'db'){
+      clearTimeout(this.timers.local);
+      this.timers.local = setTimeout(() => this.saveLocal(), 300);
+      return;
+    }
+    this.pending.add(key);
+    clearTimeout(this.timers[key]);
+    this.timers[key] = setTimeout(() => {
+      this.timers[key] = null;
+      const isState = key === 'state';
+      const body = isState ? S.state : S.days[key];
+      const ref = isState ? this.profileRef : this.daysCol.doc(key);
+      const snapshot = body ? clone(body) : null;
+      this.chains[key] = (this.chains[key] || Promise.resolve())
+        .then(() => snapshot ? ref.set(snapshot) : ref.delete())
+        .catch(e => toast('Не вдалося зберегти: ' + (e && e.code === 'quota_exceeded' ? 'сховище заповнене' : (e && e.code) || 'помилка'), 'err'))
+        .finally(() => { if (!this.timers[key]) this.pending.delete(key); });
+    }, 450);
+  }
+};
+
+/* ---------- game logic ---------- */
+function sched(q, d){
+  const T = todayStr();
+  if (q.freq === 'once'){
+    if (q.doneAt) return q.doneAt === d;
+    return d === q.date || (d === T && q.date < T);
+  }
+  if (q.created && d < q.created) return false;
+  if (q.freq === 'daily') return true;
+  if (q.freq === 'days') return (q.days || []).includes(wd(d));
+  return false;
+}
+const activeQuests = () => (S.state ? S.state.quests : []).filter(q => !q.archived);
+const scheduledOn = d => activeQuests().filter(q => sched(q, d));
+const rec = (d, qid) => { const day = S.days[d]; return day && day.done ? day.done[qid] : undefined; };
+const isDone = (d, q) => { const r = rec(d, q.id); return !!(r && r.c); };
+
+function dayPct(d){
+  const list = scheduledOn(d);
+  if (!list.length) return null;
+  return list.filter(q => isDone(d, q)).length / list.length;
+}
+function dayXp(d){
+  const day = S.days[d]; if (!day) return 0;
+  let x = day.bonus || 0;
+  Object.values(day.done || {}).forEach(r => { x += r.xp || 0; });
+  return x;
+}
+function totals(){
+  let xp = 0; const attr = {}; ATTRS.forEach(a => attr[a.k] = 0);
+  let perfect = 0, active = 0;
+  Object.values(S.days).forEach(day => {
+    let any = false;
+    Object.values(day.done || {}).forEach(r => {
+      if (r.xp > 0){ xp += r.xp; attr[r.a] = (attr[r.a] || 0) + r.xp; any = true; }
+    });
+    if (day.bonus){ xp += day.bonus; attr.dis += day.bonus; perfect++; }
+    if (any) active++;
+  });
+  return {xp, attr, perfect, active};
+}
+function streak(q){
+  if (q.freq === 'once') return 0;
+  const T = todayStr(); let d = T, n = 0, guard = 0;
+  while (guard++ < 400){
+    if (q.created && d < q.created) break;
+    if (sched(q, d)){
+      if (isDone(d, q)) n++;
+      else if (d !== T) break;
+    }
+    d = addDays(d, -1);
+  }
+  return n;
+}
+function perfectStreak(){
+  const T = todayStr(); let d = T, n = 0, guard = 0;
+  while (guard++ < 1000){
+    const b = S.days[d] && S.days[d].bonus;
+    if (b) n++; else if (d !== T) break;
+    d = addDays(d, -1);
+  }
+  return n;
+}
+function ensureDay(d){
+  if (!S.days[d]) S.days[d] = {date:d, done:{}, bonus:0};
+  if (!S.days[d].done) S.days[d].done = {};
+  return S.days[d];
+}
+function recomputeBonus(d){
+  const day = ensureDay(d);
+  const daily = scheduledOn(d).filter(q => q.freq !== 'once');
+  day.bonus = (daily.length && daily.every(q => isDone(d, q))) ? BONUS : 0;
+}
+
+function setProgress(q, d, v){
+  const lvBefore = heroLevel(totals().xp).L;
+  const day = ensureDay(d);
+  const wasDone = isDone(d, q);
+  const hadBonus = !!day.bonus;
+  v = Math.max(0, Math.round(Number(v) || 0));
+  const c = q.type === 'check' ? v >= 1 : v >= q.target;
+  if (v === 0) delete day.done[q.id];
+  else day.done[q.id] = {v, c, xp: c ? q.xp : 0, a: q.attr};
+  if (q.freq === 'once'){
+    const nd = c ? d : null;
+    if (q.doneAt !== nd){ q.doneAt = nd; store.save('state'); }
+  }
+  recomputeBonus(d);
+  store.save(d);
+  if (c && !wasDone) toast('+' + q.xp + ' XP · ' + ATTR[q.attr].n);
+  if (day.bonus && !hadBonus) toast('Ідеальний день! +' + BONUS + ' XP · Дисципліна');
+  const lvAfter = heroLevel(totals().xp).L;
+  if (lvAfter > lvBefore) toast('Рівень ' + lvAfter + ' · ' + titleFor(lvAfter), 'lvl');
+  render();
+}
+
+/* ---------- toasts ---------- */
+function toast(msg, kind){
+  const box = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), kind === 'lvl' ? 4200 : 2600);
+}
+
+/* ---------- views ---------- */
+const checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+function ringSvg(pct, color, size, stroke){
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  return '<svg viewBox="0 0 ' + size + ' ' + size + '"><circle cx="' + size/2 + '" cy="' + size/2 + '" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="' + stroke + '"/>' +
+    '<circle cx="' + size/2 + '" cy="' + size/2 + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + stroke + '" stroke-linecap="round" stroke-dasharray="' + c.toFixed(2) + '" stroke-dashoffset="' + (c * (1 - Math.min(1, pct))).toFixed(2) + '"/></svg>';
+}
+
+function viewHeader(){
+  const t = totals(), lv = heroLevel(t.xp);
+  const T = todayStr(), list = scheduledOn(T), done = list.filter(q => isDone(T, q)).length;
+  return '<header class="hero">' +
+    '<div class="ring" aria-label="Рівень ' + lv.L + '">' + ringSvg(lv.into / lv.need, 'var(--accent)', 76, 7) +
+      '<div class="lv"><span>РІВЕНЬ</span><b>' + lv.L + '</b></div></div>' +
+    '<div class="who"><div class="eyebrow">' + esc(titleFor(lv.L)) + '</div><h1>' + esc(S.state.name || 'Герой') + '</h1>' +
+      '<div class="bar" style="--ac:var(--accent)"><i style="width:' + (100 * lv.into / lv.need).toFixed(1) + '%"></i></div>' +
+      '<div class="xpline mono">' + fmt(t.xp) + ' XP · ще ' + fmt(lv.need - lv.into) + ' до рівня ' + (lv.L + 1) + '</div></div>' +
+    '<div class="todaybox"><span>Сьогодні</span><b class="mono">' + done + '/' + list.length + '</b><span>+' + dayXp(T) + ' XP</span></div>' +
+  '</header>' +
+  '<nav class="tabs" aria-label="Розділи">' +
+    [['today','Сьогодні'],['quests','Квести'],['hero','Персонаж'],['body','Тіло']].map(([k,n]) =>
+      '<button data-act="tab" data-id="' + k + '"' + (S.view === k ? ' aria-current="page"' : '') + '>' + TAB_ICONS[k] + '<span>' + n + '</span></button>').join('') +
+  '</nav>' +
+  (S.netNote ? '<div class="note">' + esc(S.netNote) + '</div>' : '') +
+  (!isStandalone() && !S.hideInstall ? '<div class="note row between"><span>Щоб відкривати як застосунок: у Safari натисніть «Поділитися» → «На початковий екран».</span><button class="btn ghost" data-act="hide-install">Добре</button></div>' : '');
+}
+
+function questCard(q, d){
+  const r = rec(d, q.id), v = r ? r.v : 0, done = !!(r && r.c), T = todayStr();
+  const st = streak(q);
+  const late = q.freq === 'once' && !q.doneAt && q.date < d;
+  let left, ctrl = '';
+  if (q.type === 'check'){
+    left = '<button class="check" data-act="toggle" data-id="' + q.id + '" aria-pressed="' + done + '" aria-label="' + (done ? 'Скасувати' : 'Виконати') + ': ' + esc(q.name) + '">' + checkSvg + '</button>';
+  } else {
+    const pct = Math.min(1, v / q.target);
+    left = '<button class="qring" data-act="inc" data-id="' + q.id + '" aria-label="Додати ' + q.step + ' ' + esc(q.unit) + '">' + ringSvg(pct, 'var(--ac)', 44, 5) + '<span>' + Math.round(pct * 100) + '%</span></button>';
+    const editing = S.editVal === q.id;
+    ctrl = '<div class="bar"><i style="width:' + (pct * 100).toFixed(1) + '%"></i></div><div class="q-ctrl">' +
+      '<button class="btn" data-act="dec" data-id="' + q.id + '"' + (v <= 0 ? ' disabled' : '') + '>−' + fmt(q.step) + '</button>' +
+      (editing
+        ? '<form class="row" data-form="val" data-id="' + q.id + '"><input id="ev-' + q.id + '" type="number" inputmode="numeric" min="0" value="' + v + '" aria-label="Точне значення"><button class="btn primary">OK</button></form>'
+        : '<button class="q-val" data-act="editval" data-id="' + q.id + '" title="Ввести точне значення">' + fmt(v) + ' / ' + fmt(q.target) + ' ' + esc(q.unit) + '</button>') +
+      '<button class="btn" data-act="inc" data-id="' + q.id + '">+' + fmt(q.step) + '</button>' +
+      (!done ? '<button class="btn ghost" data-act="fill" data-id="' + q.id + '">Все</button>' : '') +
+    '</div>';
+  }
+  return '<article class="quest' + (done ? ' is-done' : '') + '" style="--ac:var(--a-' + q.attr + ')">' + left +
+    '<div class="q-main"><div class="q-top"><span class="q-name">' + esc(q.name) + '</span><span class="q-xp">+' + q.xp + ' XP</span></div>' +
+    '<div class="q-meta"><span class="chip">' + ATTR[q.attr].n + '</span>' +
+      (st >= 2 ? '<span class="badge fire">серія ' + st + ' дн.</span>' : '') +
+      (late ? '<span class="badge late">з ' + parseYmd(q.date).toLocaleDateString('uk-UA', {day:'numeric', month:'short'}) + '</span>' : '') +
+      (q.freq === 'once' ? '<span class="badge">разове</span>' : '') +
+    '</div>' + ctrl + '</div></article>';
+}
+
+function viewToday(){
+  const D = S.date, T = todayStr();
+  const dd = parseYmd(D);
+  const label = D === T ? 'Сьогодні' : D === addDays(T, -1) ? 'Вчора' : dd.toLocaleDateString('uk-UA', {weekday:'long'});
+  const sub = dd.toLocaleDateString('uk-UA', {weekday:'long', day:'numeric', month:'long'});
+  const mon = mondayOf(D);
+  let week = '';
+  for (let i = 0; i < 7; i++){
+    const d = addDays(mon, i), p = d <= T ? dayPct(d) : null, fut = d > T;
+    const perfect = S.days[d] && S.days[d].bonus;
+    week += '<button class="wday' + (perfect ? ' perfect' : '') + '" data-act="date" data-id="' + d + '"' + (d === D ? ' aria-current="date"' : '') + (fut ? ' disabled' : '') + '>' +
+      '<small>' + WD[i] + '</small><b>' + parseYmd(d).getDate() + '</b><span class="pip"><i style="width:' + ((p || 0) * 100).toFixed(0) + '%"></i></span></button>';
+  }
+  const list = scheduledOn(D);
+  const open = list.filter(q => !isDone(D, q)), closed = list.filter(q => isDone(D, q));
+  const daily = list.filter(q => q.freq !== 'once'), dailyLeft = daily.filter(q => !isDone(D, q)).length;
+  const day = S.days[D];
+  const bonus = daily.length ? (day && day.bonus
+      ? '<div class="bonus got"><b>+' + BONUS + ' XP</b><span>Ідеальний день зараховано. Дисципліна росте.</span></div>'
+      : '<div class="bonus"><b>+' + BONUS + ' XP</b><span>за ідеальний день — залишилось ' + dailyLeft + ' ' + plural(dailyLeft, 'регулярний квест','регулярні квести','регулярних квестів') + '</span></div>') : '';
+  return '<section class="panel">' +
+    '<div class="datenav"><button class="icon-btn" data-act="shift" data-id="-1" aria-label="Попередній день">‹</button>' +
+      '<div class="d"><b>' + esc(label) + '</b><span>' + esc(sub) + '</span></div>' +
+      '<button class="icon-btn" data-act="shift" data-id="1" aria-label="Наступний день"' + (D >= T ? ' disabled' : '') + '>›</button></div>' +
+    '<div class="week">' + week + '</div>' +
+    '<div class="summary"><div class="stat"><b class="mono">' + closed.length + '/' + list.length + '</b><span>квестів виконано</span></div>' +
+      '<div class="stat"><b class="mono">+' + dayXp(D) + '</b><span>XP за день</span></div>' +
+      '<div class="stat"><b class="mono">' + perfectStreak() + '</b><span>ідеальних днів поспіль</span></div></div>' +
+    bonus +
+  '</section>' +
+  '<section class="qlist">' +
+    (open.length ? '<div class="group-h"><h2>До виконання</h2><span class="muted mono">' + open.length + '</span></div>' + open.map(q => questCard(q, D)).join('') : '') +
+    (!list.length ? '<div class="panel"><p class="muted" style="margin:0">На цей день квестів немає. Додайте разове завдання нижче або налаштуйте регулярні квести у вкладці «Квести».</p></div>' : '') +
+    (list.length && !open.length ? '<div class="panel"><h2>Усе виконано</h2><p class="muted" style="margin:0">Сильний день. Можна додати ще одне завдання нижче.</p></div>' : '') +
+    (closed.length ? '<div class="group-h"><h2>Виконано</h2><span class="muted mono">' + closed.length + '</span></div>' + closed.map(q => questCard(q, D)).join('') : '') +
+  '</section>' +
+  '<section class="panel"><h3>Швидке завдання на ' + (D === T ? 'сьогодні' : 'цей день') + '</h3>' +
+    '<form class="quick" data-form="quick"><input class="inp" id="quick-name" placeholder="Напр.: подзвонити Олені щодо квартири на Лесі" value="' + esc(S.quick.name) + '" aria-label="Назва завдання">' +
+    '<select class="inp" id="quick-attr" aria-label="Характеристика">' + ATTRS.map(a => '<option value="' + a.k + '"' + (S.quick.attr === a.k ? ' selected' : '') + '>' + a.n + '</option>').join('') + '</select>' +
+    '<button class="btn primary">Додати</button></form>' +
+    '<span class="muted" style="font-size:12px">Разове завдання дає +20 XP. Невиконане переходить на наступні дні з позначкою дати.</span></section>';
+}
+
+function plural(n, one, few, many){
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+function freqLabel(q){
+  if (q.freq === 'daily') return 'щодня';
+  if (q.freq === 'days') return (q.days || []).length === 7 ? 'щодня' : (q.days || []).map(n => WD[n-1]).join(', ');
+  const d = parseYmd(q.date).toLocaleDateString('uk-UA', {day:'numeric', month:'long'});
+  return q.doneAt ? 'виконано ' + parseYmd(q.doneAt).toLocaleDateString('uk-UA', {day:'numeric', month:'short'}) : 'разово, ' + d;
+}
+
+function blankForm(){
+  return {id:null, name:'', attr:'body', type:'check', target:10, step:1, unit:'', xp:20, freq:'daily', days:[1,2,3,4,5], date:todayStr()};
+}
+
+function viewForm(){
+  const f = S.form;
+  const opt = (v, cur, label) => '<option value="' + v + '"' + (String(cur) === String(v) ? ' selected' : '') + '>' + label + '</option>';
+  return '<section class="panel"><div class="row between"><h2>' + (f.id ? 'Редагувати квест' : 'Новий квест') + '</h2><button class="btn ghost" data-act="form-close">Закрити</button></div>' +
+    '<form data-form="quest" style="display:flex;flex-direction:column;gap:12px">' +
+    '<div class="field"><label for="f-name">Назва</label><input id="f-name" required maxlength="120" placeholder="Напр.: прочитати 20 сторінок" value="' + esc(f.name) + '"></div>' +
+    '<div class="grid2">' +
+      '<div class="field"><label for="f-type">Як відзначати</label><select id="f-type">' + opt('check', f.type, 'Галочка (зроблено / ні)') + opt('count', f.type, 'Лічильник до цілі') + '</select></div>' +
+      '<div class="field"><label for="f-attr">Що прокачує</label><select id="f-attr">' + ATTRS.map(a => opt(a.k, f.attr, a.n + ' — ' + a.d)).join('') + '</select></div>' +
+    '</div>' +
+    (f.type === 'count' ? '<div class="grid2">' +
+      '<div class="field"><label for="f-target">Ціль на день</label><input id="f-target" type="number" min="1" inputmode="numeric" value="' + esc(f.target) + '"></div>' +
+      '<div class="field"><label for="f-step">Крок кнопки «+»</label><input id="f-step" type="number" min="1" inputmode="numeric" value="' + esc(f.step) + '"></div>' +
+      '<div class="field"><label for="f-unit">Одиниця</label><input id="f-unit" maxlength="20" placeholder="мл, кроків, слів" value="' + esc(f.unit) + '"></div>' +
+    '</div>' : '') +
+    '<div class="grid2">' +
+      '<div class="field"><label for="f-freq">Повтор</label><select id="f-freq">' + opt('daily', f.freq, 'Щодня') + opt('days', f.freq, 'У вибрані дні тижня') + opt('once', f.freq, 'Одноразово') + '</select></div>' +
+      '<div class="field"><label for="f-xp">Нагорода</label><select id="f-xp">' + [10,20,30,40,50,75,100].map(x => opt(x, f.xp, x + ' XP')).join('') + '</select></div>' +
+    '</div>' +
+    (f.freq === 'days' ? '<div class="field"><span class="lbl">Дні</span><div class="daypick">' + WD.map((n, i) =>
+      '<label><input type="checkbox" id="f-d' + (i+1) + '"' + (f.days.includes(i+1) ? ' checked' : '') + '><span>' + n + '</span></label>').join('') + '</div></div>' : '') +
+    (f.freq === 'once' ? '<div class="field" style="max-width:220px"><label for="f-date">Дата</label><input id="f-date" type="date" value="' + esc(f.date) + '"></div>' : '') +
+    '<div class="row"><button class="btn primary">' + (f.id ? 'Зберегти' : 'Додати квест') + '</button></div>' +
+    '</form></section>';
+}
+
+function viewQuests(){
+  const qs = S.state.quests.filter(q => !q.archived);
+  const reg = qs.filter(q => q.freq !== 'once');
+  const once = qs.filter(q => q.freq === 'once').sort((a, b) => (a.doneAt ? 1 : 0) - (b.doneAt ? 1 : 0) || a.date.localeCompare(b.date));
+  const row = (q, i, arr) => {
+    const confirm = S.confirmDel === q.id;
+    return '<div class="mq" style="--ac:var(--a-' + q.attr + ')"><div class="t"><b>' + esc(q.name) + '</b>' +
+      '<div class="q-meta"><span class="chip">' + ATTR[q.attr].n + '</span><span>' + esc(freqLabel(q)) + '</span>' +
+      (q.type === 'count' ? '<span class="mono">ціль ' + fmt(q.target) + ' ' + esc(q.unit) + '</span>' : '') +
+      '<span class="mono">+' + q.xp + ' XP</span>' + (q.freq !== 'once' && streak(q) >= 2 ? '<span class="badge fire">серія ' + streak(q) + '</span>' : '') + '</div></div>' +
+      '<div class="acts">' +
+        (q.freq !== 'once' ? '<button class="btn ghost" data-act="up" data-id="' + q.id + '" aria-label="Вище"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+          '<button class="btn ghost" data-act="down" data-id="' + q.id + '" aria-label="Нижче"' + (i === arr.length - 1 ? ' disabled' : '') + '>↓</button>' : '') +
+        '<button class="btn" data-act="edit" data-id="' + q.id + '">Змінити</button>' +
+        (confirm ? '<button class="btn danger" data-act="del-yes" data-id="' + q.id + '">Так, видалити</button><button class="btn ghost" data-act="del-no">Ні</button>'
+                 : '<button class="btn danger" data-act="del" data-id="' + q.id + '">Видалити</button>') +
+      '</div></div>';
+  };
+  return (S.form ? viewForm() : '<section class="panel"><div class="row between"><div><h2>Ваші квести</h2><span class="muted" style="font-size:13px">Регулярні звички і разові справи. Кожен квест прокачує одну характеристику.</span></div><button class="btn primary" data-act="form-new">+ Новий квест</button></div></section>') +
+    '<section class="panel"><div class="group-h"><h2>Регулярні</h2><span class="muted mono">' + reg.length + '</span></div>' +
+      (reg.length ? '<div class="qlist">' + reg.map(row).join('') + '</div>' : '<p class="muted" style="margin:0">Ще немає регулярних квестів.</p>') + '</section>' +
+    '<section class="panel"><div class="group-h"><h2>Разові справи</h2><span class="muted mono">' + once.length + '</span></div>' +
+      (once.length ? '<div class="qlist">' + once.map(row).join('') + '</div>' : '<p class="muted" style="margin:0">Разових справ немає. Додавайте їх тут або швидко у вкладці «Сьогодні».</p>') + '</section>' +
+    '<p class="muted" style="font-size:12px;margin:0">Видалення квесту не забирає вже зароблений XP.</p>';
+}
+
+function viewHero(){
+  const t = totals(), lv = heroLevel(t.xp), T = todayStr();
+  const attrs = ATTRS.map(a => {
+    const l = attrLevel(t.attr[a.k] || 0);
+    return '<div class="attr" style="--ac:var(--a-' + a.k + ')"><div class="top"><span class="nm">' + a.n + '</span><span class="lvl">' + l.L + '</span></div>' +
+      '<div class="bar"><i style="width:' + (100 * l.into / l.need).toFixed(1) + '%"></i></div>' +
+      '<small class="mono">' + fmt(t.attr[a.k] || 0) + ' XP · ' + fmt(l.need - l.into) + ' до ' + (l.L + 1) + '-го</small><small>' + a.d + '</small></div>';
+  }).join('');
+  const start = addDays(mondayOf(T), -28);
+  let heat = WD.map(n => '<div class="h">' + n + '</div>').join('');
+  for (let i = 0; i < 35; i++){
+    const d = addDays(start, i);
+    if (d > T){ heat += '<div class="cell empty"></div>'; continue; }
+    const p = dayPct(d), x = dayXp(d);
+    const bg = p == null ? 'var(--surface-2)' : 'color-mix(in srgb, var(--accent) ' + Math.round(8 + p * 82) + '%, var(--surface-2))';
+    heat += '<div class="cell' + (d === T ? ' today' : '') + '" style="background:' + bg + '" title="' + d + ': ' + (p == null ? 'немає квестів' : Math.round(p * 100) + '%, +' + x + ' XP') + '">' + parseYmd(d).getDate() + '</div>';
+  }
+  const streaks = activeQuests().filter(q => q.freq !== 'once').map(q => [q, streak(q)]).filter(s => s[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const nameVal = S.nameDraft != null ? S.nameDraft : (S.state.name || '');
+  return '<section class="panel"><div class="eyebrow">Персонаж</div>' +
+    '<form class="row" data-form="name"><input class="inp" id="hero-name" style="flex:1;min-width:160px" maxlength="40" value="' + esc(nameVal) + '" aria-label="Ім’я персонажа"><button class="btn">Зберегти ім’я</button></form>' +
+    '<div class="summary"><div class="stat"><b class="mono">' + lv.L + '</b><span>' + esc(titleFor(lv.L)) + '</span></div>' +
+    '<div class="stat"><b class="mono">' + fmt(t.xp) + '</b><span>усього XP</span></div>' +
+    '<div class="stat"><b class="mono">' + t.perfect + '</b><span>ідеальних днів</span></div></div>' +
+    '<span class="muted" style="font-size:12px">Наступні звання: ' + TITLES.filter(x => x[0] > lv.L).slice(0, 3).map(x => x[1] + ' (рів. ' + x[0] + ')').join(' · ') + '</span></section>' +
+    '<section class="panel"><h2>Характеристики</h2><div class="attrs">' + attrs + '</div></section>' +
+    '<section class="panel"><div class="row between"><h2>Останні 5 тижнів</h2><div class="legend"><span>0%</span><i style="background:color-mix(in srgb,var(--accent) 8%,var(--surface-2))"></i><i style="background:color-mix(in srgb,var(--accent) 50%,var(--surface-2))"></i><i style="background:var(--accent)"></i><span>100%</span></div></div>' +
+      '<div class="heat-wrap"><div class="heat">' + heat + '</div></div></section>' +
+    '<section class="panel"><h2>Найдовші серії</h2>' + (streaks.length ? '<div class="ranks">' + streaks.map(s => '<div class="r"><span>' + esc(s[0].name) + '</span><b>' + s[1] + ' ' + plural(s[1], 'день','дні','днів') + '</b></div>').join('') + '</div>' : '<p class="muted" style="margin:0">Виконуйте квести кілька днів поспіль, і тут з’являться ваші серії.</p>') + '</section>' +
+    '<section class="panel"><h2>Резервна копія</h2>' +
+      '<span class="muted" style="font-size:13px">Усі дані зберігаються тільки на цьому iPhone. Раз на тиждень зберігайте копію у «Файли» або iCloud: якщо видалити застосунок чи очистити дані Safari, з копії все відновиться.</span>' +
+      '<div class="row"><button class="btn primary" data-act="export">Зберегти копію</button>' +
+      '<label class="btn" for="import-file">Відновити з копії</label>' +
+      '<input class="backup-file" id="import-file" type="file" accept="application/json,.json"></div>' +
+      (S.importDraft ? '<div class="note row between"><span>Копія від ' + esc(S.importDraft.label) + ' замінить усі поточні дані. Продовжити?</span><span class="row"><button class="btn danger" data-act="import-yes">Так, замінити</button><button class="btn ghost" data-act="import-no">Скасувати</button></span></div>' : '') +
+    '</section>';
+}
+
+function viewBody(){
+  const body = S.state.body || {goal:null, log:[]};
+  const log = (body.log || []).slice().sort((a, b) => a.d.localeCompare(b.d));
+  const withW = log.filter(e => e.w);
+  const first = withW[0], last = withW[withW.length - 1];
+  const goal = body.goal;
+  let chart = '<p class="muted" style="margin:0">Додайте хоча б два записи ваги, щоб побачити графік.</p>';
+  if (withW.length >= 2){
+    const pts = withW.slice(-90);
+    const W = 640, H = 220, L = 44, R = 14, Tp = 14, B = 28;
+    const t0 = parseYmd(pts[0].d).getTime(), t1 = parseYmd(pts[pts.length-1].d).getTime() || t0 + 1;
+    let lo = Math.min(...pts.map(p => p.w)), hi = Math.max(...pts.map(p => p.w));
+    if (goal){ lo = Math.min(lo, goal); hi = Math.max(hi, goal); }
+    lo = Math.floor(lo - 1); hi = Math.ceil(hi + 1);
+    const stepY = Math.max(1, Math.ceil((hi - lo) / 4));
+    lo = Math.floor(lo / stepY) * stepY; hi = lo + stepY * 4;
+    const x = t => L + (W - L - R) * (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0));
+    const y = v => Tp + (H - Tp - B) * (1 - (v - lo) / (hi - lo));
+    let g = '';
+    for (let v = lo; v <= hi; v += stepY) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line)" stroke-width="1"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="var(--muted)" font-family="JetBrains Mono,monospace">' + v + '</text>';
+    const xy = pts.map(p => [x(parseYmd(p.d).getTime()), y(p.w)]);
+    const line = xy.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    const area = line + ' L' + xy[xy.length-1][0].toFixed(1) + ' ' + (H - B) + ' L' + xy[0][0].toFixed(1) + ' ' + (H - B) + ' Z';
+    const fd = d => parseYmd(d).toLocaleDateString('uk-UA', {day:'numeric', month:'short'});
+    const lp = xy[xy.length-1];
+    chart = '<div class="chart-wrap"><svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Графік ваги">' + g +
+      (goal ? '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(goal) + '" y2="' + y(goal) + '" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="' + (W - R) + '" y="' + (y(goal) - 6) + '" text-anchor="end" font-size="11" fill="var(--ok)" font-family="Manrope,sans-serif" font-weight="700">ціль ' + goal + ' кг</text>' : '') +
+      '<path d="' + area + '" fill="var(--a-body)" fill-opacity=".12"/>' +
+      '<path d="' + line + '" fill="none" stroke="var(--a-body)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<circle cx="' + lp[0] + '" cy="' + lp[1] + '" r="5" fill="var(--a-body)" stroke="var(--surface)" stroke-width="2"/>' +
+      '<text x="' + L + '" y="' + (H - 8) + '" font-size="11" fill="var(--muted)" font-family="Manrope,sans-serif">' + fd(pts[0].d) + '</text>' +
+      '<text x="' + (W - R) + '" y="' + (H - 8) + '" text-anchor="end" font-size="11" fill="var(--muted)" font-family="Manrope,sans-serif">' + fd(pts[pts.length-1].d) + '</text>' +
+      '</svg></div>';
+  }
+  const delta = first && last ? (last.w - first.w) : null;
+  const left = goal && last ? (last.w - goal) : null;
+  const goalVal = S.goalDraft != null ? S.goalDraft : (goal || '');
+  const bf = S.body;
+  return '<section class="panel"><div><h2>Тіло</h2><span class="muted" style="font-size:13px">Кожен запис вимірів дає +' + BODY_XP + ' XP до характеристики «Тіло» (раз на день).</span></div>' +
+    '<div class="summary"><div class="stat"><b class="mono">' + (last ? last.w.toFixed(1) : '—') + '</b><span>вага зараз, кг</span></div>' +
+    '<div class="stat"><b class="mono">' + (delta == null ? '—' : (delta > 0 ? '+' : '') + delta.toFixed(1)) + '</b><span>від першого запису</span></div>' +
+    '<div class="stat"><b class="mono">' + (left == null ? '—' : Math.abs(left).toFixed(1)) + '</b><span>' + (left == null ? 'до цілі, кг' : left > 0 ? 'скинути до цілі, кг' : left < 0 ? 'набрати до цілі, кг' : 'ціль досягнута') + '</span></div></div>' +
+    chart + '</section>' +
+    '<section class="panel"><h3>Новий запис</h3><form data-form="body" style="display:flex;flex-direction:column;gap:10px"><div class="grid2">' +
+      '<div class="field"><label for="b-date">Дата</label><input id="b-date" type="date" max="' + todayStr() + '" value="' + esc(bf.date) + '"></div>' +
+      '<div class="field"><label for="b-w">Вага, кг</label><input id="b-w" type="number" step="0.1" min="20" max="400" inputmode="decimal" placeholder="82.4" value="' + esc(bf.w) + '"></div>' +
+      '<div class="field"><label for="b-waist">Талія, см</label><input id="b-waist" type="number" step="0.5" min="30" max="250" inputmode="decimal" placeholder="необов’язково" value="' + esc(bf.waist) + '"></div>' +
+    '</div><div class="row"><button class="btn primary">Записати</button></div></form></section>' +
+    '<section class="panel"><h3>Ціль</h3><form class="row" data-form="goal"><input class="inp" id="b-goal" type="number" step="0.1" min="20" max="400" inputmode="decimal" style="max-width:180px" placeholder="Цільова вага, кг" value="' + esc(goalVal) + '" aria-label="Цільова вага, кг"><button class="btn">Зберегти ціль</button></form></section>' +
+    (log.length ? '<section class="panel"><h3>Журнал</h3><div class="blog">' + log.slice().reverse().slice(0, 30).map(e =>
+      '<div class="r"><span>' + parseYmd(e.d).toLocaleDateString('uk-UA', {day:'numeric', month:'long', year:'numeric'}) + '</span><span class="mono">' + (e.w ? e.w.toFixed(1) + ' кг' : '—') + '</span><span class="mono muted">' + (e.waist ? e.waist + ' см' : '') + '</span>' +
+      '<button class="btn ghost" data-act="body-del" data-id="' + e.d + '" aria-label="Видалити запис">×</button></div>').join('') + '</div></section>' : '');
+}
+
+function viewOnboarding(){
+  const sample = starterQuests(todayStr()).slice(0, 8);
+  return '<section class="ob"><div class="eyebrow">Квест життя</div>' +
+    '<h1>Щоденні справи, які прокачують вас як персонажа</h1>' +
+    '<p>Вода, кроки, тренування, нові об’єкти, дзвінки клієнтам, слова — кожен виконаний квест дає досвід. Досвід підвищує рівень і шість характеристик: Тіло, Енергію, Розум, Справу, Зв’язки й Дисципліну.</p>' +
+    '<div class="field" style="max-width:360px"><label for="ob-name">Як звати вашого персонажа?</label><input id="ob-name" maxlength="40" placeholder="Ваше ім’я" value="' + esc(S.obName) + '"></div>' +
+    '<div class="row"><button class="btn primary" data-act="start-starter">Почати зі стартовим набором</button><button class="btn" data-act="start-empty">Почати з чистого аркуша</button>' +
+      '<label class="btn ghost" for="import-file">Відновити з копії</label><input class="backup-file" id="import-file" type="file" accept="application/json,.json"></div>' +
+    '<div class="eyebrow">Стартовий набір (усе можна змінити)</div><div class="preview">' +
+      sample.map(q => '<div style="--ac:var(--a-' + q.attr + ')"><span>' + esc(q.name) + (q.type === 'count' ? ' · ' + fmt(q.target) + ' ' + esc(q.unit) : '') + '</span><span class="chip">' + ATTR[q.attr].n + '</span></div>').join('') +
+    '</div></section>';
+}
+
+/* ---------- render ---------- */
+function render(){
+  const ae = document.activeElement;
+  const focusId = ae && ae.id ? ae.id : null;
+  let sel = null; try { sel = focusId && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null; } catch(e){}
+  if (!S.loaded){ $app.innerHTML = '<div class="loading">Завантаження персонажа…</div>' + (S.netNote ? '<div class="note">' + esc(S.netNote) + '</div>' : ''); return; }
+  if (!S.state){ $app.innerHTML = viewOnboarding(); }
+  else {
+    const v = S.view;
+    $app.innerHTML = viewHeader() + (v === 'quests' ? viewQuests() : v === 'hero' ? viewHero() : v === 'body' ? viewBody() : viewToday());
+  }
+  if (focusId){
+    const el = document.getElementById(focusId);
+    if (el){ el.focus({preventScroll:true}); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch(e){} }
+  }
+}
+
+/* ---------- events ---------- */
+const findQ = id => S.state.quests.find(q => q.id === id);
+const actions = {
+  tab(id){ S.view = id; S.form = null; S.confirmDel = null; try { history.replaceState(null, '', '#' + id); } catch(e){ location.hash = id; } render(); window.scrollTo({top:0}); },
+  date(id){ S.date = id; S.editVal = null; render(); },
+  shift(id){ const n = addDays(S.date, Number(id)); if (n <= todayStr()){ S.date = n; S.editVal = null; render(); } },
+  toggle(id){ const q = findQ(id); if (!q) return; setProgress(q, S.date, isDone(S.date, q) ? 0 : 1); },
+  inc(id){ const q = findQ(id); if (!q) return; const r = rec(S.date, id); setProgress(q, S.date, (r ? r.v : 0) + q.step); },
+  dec(id){ const q = findQ(id); if (!q) return; const r = rec(S.date, id); setProgress(q, S.date, Math.max(0, (r ? r.v : 0) - q.step)); },
+  fill(id){ const q = findQ(id); if (!q) return; setProgress(q, S.date, q.target); },
+  editval(id){ S.editVal = id; render(); const el = document.getElementById('ev-' + id); if (el){ el.focus(); el.select(); } },
+  'form-new'(){ S.form = blankForm(); render(); const el = document.getElementById('f-name'); if (el) el.focus(); },
+  'form-close'(){ S.form = null; render(); },
+  edit(id){ const q = findQ(id); if (!q) return; S.form = Object.assign(blankForm(), clone(q)); S.form.days = q.days || [1,2,3,4,5]; S.form.date = q.date || todayStr(); render(); window.scrollTo({top:0, behavior:'smooth'}); },
+  del(id){ S.confirmDel = id; render(); },
+  'del-no'(){ S.confirmDel = null; render(); },
+  'del-yes'(id){ S.state.quests = S.state.quests.filter(q => q.id !== id); S.confirmDel = null; store.save('state'); toast('Квест видалено'); render(); },
+  up(id){ move(id, -1); }, down(id){ move(id, 1); },
+  'hide-install'(){ S.hideInstall = true; try { localStorage.setItem(LS_KEY + ':hideInstall', '1'); } catch(e){} render(); },
+  async export(){
+    const json = JSON.stringify({app:'kvest-zhyttia', v:1, exported:new Date().toISOString(), state:S.state, days:S.days});
+    const name = 'kvest-backup-' + todayStr() + '.json';
+    try {
+      const file = new File([json], name, {type:'application/json'});
+      if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:'Квест життя — копія'}); toast('Копію передано'); return; }
+    } catch(e){ if (e && e.name === 'AbortError') return; }
+    try {
+      const url = URL.createObjectURL(new Blob([json], {type:'application/json'}));
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast('Копію збережено');
+    } catch(e){ toast('Не вдалося зберегти копію', 'err'); }
+  },
+  'import-yes'(){
+    const d = S.importDraft; if (!d) return;
+    S.state = d.state; S.days = d.days || {}; S.importDraft = null;
+    store.saveLocal(); toast('Дані відновлено'); render();
+  },
+  'import-no'(){ S.importDraft = null; render(); },
+  'start-starter'(){ createState(starterQuests(todayStr())); },
+  'start-empty'(){ createState([]); },
+  'body-del'(id){
+    const b = S.state.body; b.log = (b.log || []).filter(e => e.d !== id);
+    const day = S.days[id]; if (day && day.done && day.done._body){ delete day.done._body; store.save(id); }
+    store.save('state'); render();
+  }
+};
+function move(id, dir){
+  const qs = S.state.quests, reg = qs.filter(q => !q.archived && q.freq !== 'once');
+  const i = reg.findIndex(q => q.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= reg.length) return;
+  const a = qs.indexOf(reg[i]), b = qs.indexOf(reg[j]);
+  [qs[a], qs[b]] = [qs[b], qs[a]];
+  store.save('state'); render();
+}
+function createState(quests){
+  S.state = {v:1, name:(S.obName || '').trim() || 'Герой', created:todayStr(), quests, body:{goal:null, log:[]}};
+  store.save('state'); S.view = 'today'; render();
+  toast('Пригода почалася. Рівень 1');
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  const fn = actions[b.dataset.act];
+  if (fn){ e.preventDefault(); fn(b.dataset.id); }
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id !== 'import-file' || !t.files || !t.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const o = JSON.parse(reader.result);
+      if (!o || o.app !== 'kvest-zhyttia' || !o.state || !Array.isArray(o.state.quests)) throw new Error('bad');
+      const dt = o.exported ? new Date(o.exported) : null;
+      S.importDraft = {state:o.state, days:o.days || {}, label: dt && !isNaN(dt) ? dt.toLocaleDateString('uk-UA', {day:'numeric', month:'long', year:'numeric'}) : 'невідомої дати'};
+      if (!S.state){ actions['import-yes'](); return; }
+      render();
+    } catch(err){ toast('Це не файл копії «Квесту життя»', 'err'); }
+  };
+  reader.onerror = () => toast('Не вдалося прочитати файл', 'err');
+  reader.readAsText(t.files[0]);
+  t.value = '';
+});
+
+document.addEventListener('input', e => {
+  const t = e.target, id = t.id; if (!id || id === 'import-file') return;
+  if (id === 'ob-name') S.obName = t.value;
+  else if (id === 'quick-name') S.quick.name = t.value;
+  else if (id === 'quick-attr') S.quick.attr = t.value;
+  else if (id === 'hero-name') S.nameDraft = t.value;
+  else if (id === 'b-goal') S.goalDraft = t.value;
+  else if (id === 'b-date') S.body.date = t.value;
+  else if (id === 'b-w') S.body.w = t.value;
+  else if (id === 'b-waist') S.body.waist = t.value;
+  else if (S.form && id.startsWith('f-')){
+    const f = S.form, k = id.slice(2);
+    if (/^d[1-7]$/.test(k)){
+      const n = Number(k.slice(1));
+      f.days = t.checked ? Array.from(new Set(f.days.concat(n))).sort() : f.days.filter(x => x !== n);
+    } else f[k] = t.value;
+    if (k === 'type' || k === 'freq') render();
+  }
+});
+
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  const form = e.target, kind = form.dataset.form;
+  if (kind === 'val'){
+    const q = findQ(form.dataset.id), el = document.getElementById('ev-' + form.dataset.id);
+    S.editVal = null;
+    if (q && el) setProgress(q, S.date, el.value); else render();
+  } else if (kind === 'quick'){
+    const name = S.quick.name.trim();
+    if (!name){ toast('Впишіть назву завдання', 'err'); return; }
+    S.state.quests.push({id:newId(), name, attr:S.quick.attr, type:'check', xp:20, freq:'once', date:S.date, doneAt:null, days:[], target:1, step:1, unit:'', created:todayStr()});
+    S.quick.name = '';
+    store.save('state'); toast('Завдання додано'); render();
+  } else if (kind === 'quest'){
+    const f = S.form;
+    const name = String(f.name || '').trim();
+    if (!name){ toast('Впишіть назву квесту', 'err'); return; }
+    if (f.freq === 'days' && !f.days.length){ toast('Виберіть хоча б один день', 'err'); return; }
+    const target = Math.max(1, Math.round(Number(f.target) || 1)), step = Math.max(1, Math.round(Number(f.step) || 1));
+    const data = {name, attr:f.attr, type:f.type, xp:Number(f.xp) || 20, freq:f.freq, days:f.days.slice(),
+      target:f.type === 'count' ? target : 1, step:f.type === 'count' ? step : 1, unit:f.type === 'count' ? String(f.unit || '').trim() : '',
+      date:f.freq === 'once' ? (f.date || todayStr()) : null};
+    if (f.id){
+      const q = findQ(f.id);
+      if (q){ Object.assign(q, data); if (q.freq !== 'once') q.doneAt = null; }
+      toast('Квест оновлено');
+    } else {
+      S.state.quests.push(Object.assign({id:newId(), created:todayStr(), doneAt:null}, data));
+      toast('Квест додано');
+    }
+    S.form = null; store.save('state'); render();
+  } else if (kind === 'name'){
+    S.state.name = (S.nameDraft != null ? S.nameDraft : S.state.name || '').trim() || 'Герой';
+    S.nameDraft = null; store.save('state'); toast('Ім’я збережено'); render();
+  } else if (kind === 'goal'){
+    const g = parseFloat(String(S.goalDraft != null ? S.goalDraft : '').replace(',', '.'));
+    S.state.body = S.state.body || {goal:null, log:[]};
+    S.state.body.goal = isFinite(g) && g > 0 ? Math.round(g * 10) / 10 : null;
+    S.goalDraft = null; store.save('state'); toast(S.state.body.goal ? 'Ціль збережено' : 'Ціль прибрано'); render();
+  } else if (kind === 'body'){
+    const bf = S.body, d = bf.date && bf.date <= todayStr() ? bf.date : todayStr();
+    const w = parseFloat(String(bf.w).replace(',', '.')), waist = parseFloat(String(bf.waist).replace(',', '.'));
+    if (!(w > 0) && !(waist > 0)){ toast('Вкажіть вагу або талію', 'err'); return; }
+    const b = S.state.body = S.state.body || {goal:null, log:[]};
+    b.log = (b.log || []).filter(e => e.d !== d);
+    b.log.push({d, w: w > 0 ? Math.round(w * 10) / 10 : null, waist: waist > 0 ? Math.round(waist * 10) / 10 : null});
+    b.log.sort((x, y) => x.d.localeCompare(y.d));
+    if (b.log.length > 400) b.log = b.log.slice(-400);
+    const day = ensureDay(d), first = !day.done._body;
+    day.done._body = {v:1, c:true, xp:BODY_XP, a:'body'};
+    store.save(d); store.save('state');
+    S.body = {date:todayStr(), w:'', waist:''};
+    toast(first ? 'Записано · +' + BODY_XP + ' XP · Тіло' : 'Запис оновлено');
+    render();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.editVal){ S.editVal = null; render(); }
+});
+
+/* ---------- routing + boot ---------- */
+const VIEWS = ['today','quests','hero','body'];
+function fromHash(){ const h = (location.hash || '').slice(1); if (VIEWS.includes(h)) S.view = h; }
+window.addEventListener('hashchange', () => { fromHash(); render(); });
+fromHash();
+// roll the selected day over at midnight if the page stays open
+setInterval(() => { const T = todayStr(); if (S.lastToday && S.lastToday !== T && S.date === S.lastToday){ S.date = T; render(); } S.lastToday = T; }, 60000);
+S.lastToday = todayStr();
+// iOS присипляє таймери у фоні — перевіряємо зміну дня при поверненні в застосунок
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const T = todayStr();
+  if (S.lastToday !== T){ if (S.date === S.lastToday) S.date = T; S.lastToday = T; render(); }
+});
+try { S.hideInstall = localStorage.getItem(LS_KEY + ':hideInstall') === '1'; } catch(e){}
+store.init();
+if ('serviceWorker' in navigator && location.protocol === 'https:'){
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+})();
+</script>
+</body>
+</html>
